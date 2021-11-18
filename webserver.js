@@ -5,8 +5,8 @@ const server = http.createServer(app);
 const socket = require('socket.io');
 const io = socket(server);
 const { v4: uuidv4 } = require('uuid');
-
-const users = {};
+const rooms = []; // is used to verify that roomID in URL is valid
+const users = [];
 
 
 io.on('connection', socket => { 
@@ -24,34 +24,19 @@ io.on('connection', socket => {
 app.use(express.static(__dirname));
 
 app.get('/', (req, res) => {
-    res.redirect(`/${uuidv4()}`);
+    const roomID = uuidv4();
+    rooms.push(roomID);
+    res.redirect(`/${roomID}`);
   });
 
 app.get('/:roomID', (req, res) => {
-    res.sendFile(__dirname + "/templates/index.html");
+    if (rooms.includes(req.params['roomID'])) {
+        res.sendFile(__dirname + "/templates/index.html");
+    } else {
+        res.sendStatus(404);
+    }
 });
 
 server.listen(3000, () => {
     console.log('Server started at port 3000');
    });
-
-
-/**
-app.listen(3000, () => {
-    console.log("Application started and Listening on port 3000");
-});
-
-
-// serve your css as static
-app.use(express.static(__dirname));
-
-app.get("/", (req, res) => {
-    roomID = uuidv4();
-    rooms.push(roomID);
-    res.redirect(`/${roomID}`);
-});
-
-app.get(`/${roomID}`, (req, res) => {
-    res.sendFile(__dirname + "/templates/index.html");  
-}); 
-*/
