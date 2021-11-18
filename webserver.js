@@ -8,7 +8,6 @@ const { v4: uuidv4 } = require('uuid');
 
 const users = {};
 
-
 io.on('connection', socket => { 
     socket.on('join', ([roomID, peerID]) => {
         if (users[roomID]) {

@@ -2,7 +2,6 @@ const streamSaver = require('streamsaver');
 const io = require("socket.io-client");
 
 var peer = null //own peer object
-var ownID = null
 var conn = []
 var file = null 
 var gotFile = false
@@ -12,8 +11,8 @@ var socket = null
 var url = window.location.href;
 const roomID = url.substring((url.lastIndexOf('/')+1));
 
+
 function initialize(){
-    console.log("ROOMIS", roomID)
     socket = io.connect("/");
     
     socket.on("all users", users => {
@@ -30,7 +29,6 @@ function initialize(){
     peer.on('connection', function(c) {
         conn.push(c);
         console.log("connected to: " + c.peer);
-        document.getElementById("connection").innerHTML = "Connected to: "+c.peer
         ready(c);
     })
 
@@ -55,10 +53,15 @@ function connect(){
     const ID = document.getElementById("conn-id-field").value;
     conn = peer.connect(ID)
     console.log("connected to peer with ID: "+ ID)
-    document.getElementById("connection").innerHTML = "Connected to: "+ID
 }
 
 function ready(c){
+    let connTable = document.getElementById("listOfConn");
+    let row = connTable.insertRow(-1);
+    let cell = row.insertCell(-1)
+    let text = document.createTextNode(c.peer);
+    cell.appendChild(text)
+
     c.on('open', function() {
         // Receive messages
         c.on('data', handleReceivingData);
@@ -129,7 +132,6 @@ function sendFile(){
                     handlereading(obj.done, obj.value);
                 })
             }
-    
         } else{
             console.log("No conection")
         }
@@ -142,5 +144,4 @@ function updateDownloadButton(state){
     } else {
         document.getElementById("downloadFile").style.display = "none"
     }
-    
 }
