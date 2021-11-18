@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="shortcut icon" href="#" />
+        <link rel="stylesheet" href="styles/styles.css">
+    </head> 
+<script src="bundle.js"></script>
+<script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
+<script src="app.js"></script>
+
+<body onload="initialize()">
+    <table class="display">
+        <tr>
+            <td class="title">Connection:</td>
+            <td class="title">Messeges:</td>
+        </tr>
+        <td>
+            <span style="font-weight: bold">ID: </span>
+            <input type="text" id="conn-id-field" title="Input the ID from receive.html">
+            <button id="connect-button" onclick="connect()">Connect</button>
+        </td>
+        <td>
+            <input type="text" id="sendMessageBox" placeholder="Enter a message..." autofocus="true" />
+            <button type="button" id="sendButton" onclick="sendMsg()">Send message</button>
+        </td>
+    </table>
+
+    <div class="fileSelect">
+        <input type="file" id="files" name="files[]" multiple />
+        <output id="list"></output>
+        <button type="button" id="sendFileButton" onclick="sendFile()">Send file</button>
+        <script>
+            document.getElementById('files').addEventListener('change', (event) => handleFile(event));
+        </script>
+    </div>
+    <div id="downloadFile" style="display: none">
+        <pre> You have received a file. Would you like to download the file?</pre>
+        <button type="button" id="downloadFileButton" onclick="download()">Yes</button>
+    </div>
+
+    <table>
+        <tr>
+            <td> <pre>Own ID: </pre></td>
+            <td> <pre id="PeerID"></pre> </td>
+        </tr>
+        <tr>
+            <pre id="connection">No Connection</pre>
+        </tr>
+    </table>
+    
+</body>
+</html>
+
