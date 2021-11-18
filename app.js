@@ -1,36 +1,54 @@
-const streamSaver = require('streamsaver')
+const streamSaver = require('streamsaver');
+const io = require("socket.io-client");
 
 var peer = null //own peer object
-var conn = null
+var ownID = null
+var conn = []
 var file = null 
 var gotFile = false
 var filename = ""
-var reader = new FileReader()
 const worker = new Worker("../worker.js");
-
+var socket = null
+var url = window.location.href;
+const roomID = url.substring((url.lastIndexOf('/')+1));
 
 function initialize(){
+    console.log("ROOMIS", roomID)
+    socket = io.connect("/");
+    
+    socket.on("all users", users => {
+        connect2(users);
+    });
+    
     peer = new Peer();
-
     // on open will be launch when you successfully connect to PeerServer
     peer.on('open', function(id){
         document.getElementById("PeerID").innerHTML = id;
+        socket.emit("join", ([roomID, id]));
     });
 
     peer.on('connection', function(c) {
-        conn = c;
-        console.log("connected to: " + conn.peer);
-        conn.open = true;
-        document.getElementById("connection").innerHTML = "Connected to: "+conn.peer
-        ready();
+        conn.push(c);
+        console.log("connected to: " + c.peer);
+        document.getElementById("connection").innerHTML = "Connected to: "+c.peer
+        ready(c);
     })
 
     // Check if File API is supported
     if (window.File && window.FileReader && window.FileList && window.Blob) {
-        // Great success! All the File APIs are supported.
+        // All the File APIs are supported.
       } else {
         alert('The File APIs are not fully supported in this browser.');
       }
+}
+
+function connect2(IDs){
+    IDs.forEach(id => {
+        console.log("connected to peer with ID: "+ id)
+        c = peer.connect(id)
+        conn.push(c)
+        ready(c)
+    });
 }
 
 function connect(){
@@ -40,23 +58,25 @@ function connect(){
     document.getElementById("connection").innerHTML = "Connected to: "+ID
 }
 
-function ready(){
-    conn.on('open', function() {
+function ready(c){
+    c.on('open', function() {
         // Receive messages
-        conn.on('data', handleReceivingData);
+        c.on('data', handleReceivingData);
     });
 }
 
 // For sending msg
 function sendMsg(){
-    if (conn && conn.open) {
-        const msg = sendMessageBox.value;
-        sendMessageBox.value = "";
-        conn.send(msg);
-        console.log("Sent: " + msg)
-    } else{
-        console.log("No conection")
-    }
+    const msg = sendMessageBox.value;
+    conn.forEach(c => {
+        if (c && c.open) {
+            c.send(msg);
+            console.log("Sent: " + msg)
+        } else{
+            console.log("No conection")
+        }
+    })
+    sendMessageBox.value = "";
 }
 
 function handleFile(evt){
@@ -64,6 +84,7 @@ function handleFile(evt){
 }
 
 function handleReceivingData(data){
+    console.log(data)
     if (data.toString().includes("done")) {
         console.log("Received data")
         gotFile = true
@@ -88,29 +109,31 @@ function download() {
 
 // For sending file
 function sendFile(){
-    if (conn && conn.open) {
-        const stream = file.stream();
-        const reader = stream.getReader();
-
-        reader.read().then(obj => {
-            handlereading(obj.done, obj.value);
-        });
-
-        function handlereading(done, value) {
-            if (done) {
-                conn.send(JSON.stringify({ done: true, fileName: file.name }));
-                return;
-            }
-
-            conn.send(value);
+    conn.forEach(c =>{
+        if (c && c.open) {
+            const stream = file.stream();
+            const reader = stream.getReader();
+    
             reader.read().then(obj => {
                 handlereading(obj.done, obj.value);
-            })
+            });
+    
+            function handlereading(done, value) {
+                if (done) {
+                    c.send(JSON.stringify({ done: true, fileName: file.name }));
+                    return;
+                }
+    
+                c.send(value);
+                reader.read().then(obj => {
+                    handlereading(obj.done, obj.value);
+                })
+            }
+    
+        } else{
+            console.log("No conection")
         }
-
-    } else{
-        console.log("No conection")
-    }
+    });
 } 
 
 function updateDownloadButton(state){
