@@ -2,7 +2,7 @@ const streamSaver = require('streamsaver');
 const io = require("socket.io-client");
 
 var peer = null //own peer object
-var conn = []
+var conns = []
 var file = null 
 var gotFile = false
 var filename = ""
@@ -16,7 +16,7 @@ function initialize(){
     socket = io.connect("/");
     
     socket.on("all users", users => {
-        connect2(users);
+        connect(users);
     });
 
     socket.on("updateConn", ([rID, peerID]) => {
@@ -36,7 +36,7 @@ function initialize(){
     });
 
     peer.on('connection', function(c) {
-        conn.push(c);
+        conns.push(c);
         console.log("connected to: " + c.peer);
         ready(c);
     })
@@ -49,19 +49,13 @@ function initialize(){
       }
 }
 
-function connect2(IDs){
+function connect(IDs){
     IDs.forEach(id => {
         console.log("connected to peer with ID: "+ id)
         c = peer.connect(id)
-        conn.push(c)
+        conns.push(c)
         ready(c)
     });
-}
-
-function connect(){
-    const ID = document.getElementById("conn-id-field").value;
-    conn = peer.connect(ID)
-    console.log("connected to peer with ID: "+ ID)
 }
 
 function ready(c){
@@ -76,7 +70,7 @@ function ready(c){
 // For sending msg
 function sendMsg(){
     const msg = sendMessageBox.value;
-    conn.forEach(c => {
+    conns.forEach(c => {
         if (c && c.open) {
             c.send(msg);
             console.log("Sent: " + msg)
@@ -117,7 +111,7 @@ function download() {
 
 // For sending file
 function sendFile(){
-    conn.forEach(c =>{
+    conns.forEach(c =>{
         if (c && c.open) {
             const stream = file.stream();
             const reader = stream.getReader();
