@@ -24,7 +24,6 @@ io.on('connection', socket => {
             io.emit("updateConn", ([roomID, peerID]));
         }
     })
-    
 });
 
 app.use(express.static(__dirname));
