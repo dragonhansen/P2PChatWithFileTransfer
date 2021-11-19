@@ -20,9 +20,10 @@ function initialize(){
     });
 
     socket.on("updateConn", ([rID, peerID]) => {
+        console.log("HERE")
         if(rID == roomID){
             updateConnTable(peerID, false)
-            conn = conn.filter(function( obj ) {
+            conns = conns.filter(function( obj ) {
                 return obj.peer !== peerID;
             });
         }
@@ -160,7 +161,7 @@ function updateConnTable(peer, add) {
         cell.appendChild(text)
     } else {
         //remove peer from table
-        for(var i=1; i <= conn.length; i++){
+        for(var i=1; i <= conns.length; i++){
             check = connTable.rows[i].cells[0].innerHTML
             if(check == peer){
                 connTable.rows[i].remove();
