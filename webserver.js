@@ -18,6 +18,13 @@ io.on('connection', socket => {
         const usersInThisRoom = users[roomID].filter(id => id !== peerID);
         socket.emit("all users", usersInThisRoom);
     });
+    socket.on('close', ([roomID,peerID]) => {
+        if(users[roomID]){
+            users[roomID] = users[roomID].filter(id => id !== peerID);
+            io.emit("updateConn", ([roomID, peerID]));
+        }
+    })
+    
 });
 
 app.use(express.static(__dirname));

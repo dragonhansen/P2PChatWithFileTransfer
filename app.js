@@ -11,13 +11,22 @@ var socket = null
 var url = window.location.href;
 const roomID = url.substring((url.lastIndexOf('/')+1));
 
-
+//fired from index.html when loaded
 function initialize(){
     socket = io.connect("/");
     
     socket.on("all users", users => {
         connect2(users);
     });
+
+    socket.on("updateConn", ([rID, peerID]) => {
+        if(rID == roomID){
+            updateConnTable(peerID, false)
+            conn = conn.filter(function( obj ) {
+                return obj.peer !== peerID;
+            });
+        }
+    })
     
     peer = new Peer();
     // on open will be launch when you successfully connect to PeerServer
@@ -56,11 +65,7 @@ function connect(){
 }
 
 function ready(c){
-    let connTable = document.getElementById("listOfConn");
-    let row = connTable.insertRow(-1);
-    let cell = row.insertCell(-1)
-    let text = document.createTextNode(c.peer);
-    cell.appendChild(text)
+    updateConnTable(c.peer, true)
 
     c.on('open', function() {
         // Receive messages
@@ -143,5 +148,29 @@ function updateDownloadButton(state){
         document.getElementById("downloadFile").style.display = "block"
     } else {
         document.getElementById("downloadFile").style.display = "none"
+    }
+}
+
+//fired from index.html when closed or refreshed
+function removePeer(){
+    socket.emit('close', ([roomID, peer["id"]]))
+}
+
+function updateConnTable(peer, add) {
+    let connTable = document.getElementById("listOfConn");
+    if (add){
+        // add peer to table
+        let row = connTable.insertRow(-1);
+        let cell = row.insertCell(-1)
+        let text = document.createTextNode(peer);
+        cell.appendChild(text)
+    } else {
+        //remove peer from table
+        for(var i=1; i <= conn.length; i++){
+            check = connTable.rows[i].cells[0].innerHTML
+            if(check == peer){
+                connTable.rows[i].remove();
+            }
+        }
     }
 }
