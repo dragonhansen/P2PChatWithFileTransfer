@@ -20,7 +20,6 @@ function initialize(){
     });
 
     socket.on("updateConn", ([rID, peerID]) => {
-        console.log("HERE")
         if(rID == roomID){
             updateConnTable(peerID, false)
             conns = conns.filter(function( obj ) {
@@ -165,6 +164,8 @@ function updateConnTable(peer, add) {
             check = connTable.rows[i].cells[0].innerHTML
             if(check == peer){
                 connTable.rows[i].remove();
+                // found the peer that has disconnected
+                break
             }
         }
     }
