@@ -5,8 +5,8 @@ const server = http.createServer(app);
 const socket = require('socket.io');
 const io = socket(server);
 const { v4: uuidv4 } = require('uuid');
-const rooms = []; // is used to verify that roomID in URL is valid
-const users = [];
+var rooms = []; // is used to verify that roomID in URL is valid
+var users = [];
 
 io.on('connection', socket => { 
     socket.on('join', ([roomID, peerID]) => {
@@ -21,8 +21,14 @@ io.on('connection', socket => {
     socket.on('close', ([roomID,peerID]) => {
         if(users[roomID]){
             users[roomID] = users[roomID].filter(id => id !== peerID);
+            if(users[roomID].length == 0){
+                // no more peers in the room, so we remove the roomID from valid URLs
+                rooms = rooms.filter(id => id !== roomID);
+                users = users.filter(id => id !== roomID);
+            }
             io.emit("updateConn", ([roomID, peerID]));
         }
+        console.log(users)
     })
 });
 
@@ -42,6 +48,6 @@ app.get('/:roomID', (req, res) => {
     }
 });
 
-server.listen(3000, () => {
+server.listen(port = 3000, host = "10.0.1.201", () => {
     console.log('Server started at port 3000');
    });

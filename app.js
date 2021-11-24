@@ -40,6 +40,7 @@ function initialize(){
         console.log("connected to: " + c.peer);
         ready(c);
     })
+    window.onbeforeunload = removePeer(true)
 
     // Check if File API is supported
     if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -60,7 +61,6 @@ function connect(IDs){
 
 function ready(c){
     updateConnTable(c.peer, true)
-
     c.on('open', function() {
         // Receive messages
         c.on('data', handleReceivingData);
@@ -99,6 +99,7 @@ function handleReceivingData(data){
 }
 
 function download() {
+    window.onbeforeunload = removePeer(false) 
     gotFile = false
     updateDownloadButton(gotFile)
     worker.postMessage("download");
@@ -106,12 +107,13 @@ function download() {
         const stream = event.data.stream();
         const fileStream = streamSaver.createWriteStream(filename);
         stream.pipeTo(fileStream);
+        window.onbeforeunload = removePeer(true) 
     })
 }
 
 // For sending file
 function sendFile(){
-    conns.forEach(c =>{
+    conns.forEach(c => {
         if (c && c.open) {
             const stream = file.stream();
             const reader = stream.getReader();
@@ -145,9 +147,18 @@ function updateDownloadButton(state){
     }
 }
 
-//fired from index.html when closed or refreshed
-function removePeer(){
-    socket.emit('close', ([roomID, peer["id"]]))
+// update the eventlistener, such that beforeunload is not fired when we press the download button
+function removePeer(accept){
+    if (accept) {
+        window.addEventListener("beforeunload", () => {
+            socket.emit('close', ([roomID, peer["id"]]))
+        })
+    } else {
+        window.addEventListener("beforeunload", () => {
+            null
+        })
+    }
+
 }
 
 function updateConnTable(peer, add) {
@@ -160,6 +171,7 @@ function updateConnTable(peer, add) {
         cell.appendChild(text)
     } else {
         //remove peer from table
+        //rows[0] is the "Connections" label so we start from 1
         for(var i=1; i <= conns.length; i++){
             check = connTable.rows[i].cells[0].innerHTML
             if(check == peer){
