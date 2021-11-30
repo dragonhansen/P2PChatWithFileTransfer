@@ -39,10 +39,10 @@ function initialize(){
         if (rID == roomID){
             if(files[fName]){
                 files[fName].push(pID)
-                updateFilesTable(true, false)
             } else {
                 files[fName] = [pID]
-                updateFilesTable(true, true)
+                // we only add a new cell in our table when a new file has been sent
+                updateFilesTable(true, fName)
             }
         }
     });
@@ -60,12 +60,6 @@ function initialize(){
         ready(c);
     })
 
-    // Check if File API is supported
-    if (window.File && window.FileReader && window.FileList && window.Blob) {
-        // All the File APIs are supported.
-      } else {
-        alert('The File APIs are not fully supported in this browser.');
-      }
 }
 
 function connect(IDs){
@@ -197,23 +191,36 @@ function updateConnTable(peer, add) {
 
 
 // fresh dictates wether we append a append a peerID to a file, or we create a new cell containing a new file.
-function updateFilesTable(add, fresh) {
-    console.log("FFIIIIELS", files)
-    /**
-    let lifeTable = document.getElementById("listOfFiles");
-    if (add){
-        // new peer has file
-        let row = connTable.insertRow(-1);
-        let cell = row.insertCell(-1)
-        let text = document.createTextNode(peer);
-        cell.appendChild(text)
-        var btn = document.createElement('input');
-        btn.type = "button";
-        btn.className = "btn";
-        btn.value = entry.email;
-        btn.onclick = (function(entry) {return function() {chooseUser(entry);}})(entry);
-        td.appendChild(btn);
-    }
-    */
+function updateFilesTable(add, peer, fName) {
     
+    let fileTable = document.getElementById("listOfFiles");
+    if (add){
+        // new file has been sent
+        let row = fileTable.insertRow(-1);
+        let cell = row.insertCell(-1)
+        let cell2 = row.insertCell(-1)
+        let text = document.createTextNode(fName);
+        cell.appendChild(text)
+        
+        var btn = document.createElement('button');
+        btn.type = "button";
+        btn.value = fName
+        btn.onclick = function() {downloadFile(fName)};
+        btn.innerHTML = "Download file"
+        cell2.appendChild(btn);
+    } else {
+        // peer has disconnected and we therefore remove the file if no other peer has it
+        for(var i=1; i <= files.length; i++){
+            check = fileTable.rows[i].cells[0].innerHTML
+            if(check == fName){
+                connTable.rows[i].remove();
+                // found the peer that has disconnected
+                break
+            }
+        }
+    }
+}
+
+function downloadFile(fName) {
+    console.log("HELLO FELLOW")
 }
