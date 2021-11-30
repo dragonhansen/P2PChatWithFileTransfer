@@ -7,6 +7,7 @@ const io = socket(server);
 const { v4: uuidv4 } = require('uuid');
 var rooms = []; // is used to verify that roomID in URL is valid
 var users = [];
+var files = []; // used to keep track of which peers have which files in each room
 
 io.on('connection', socket => { 
     socket.on('join', ([roomID, peerID]) => {
@@ -28,8 +29,27 @@ io.on('connection', socket => {
             }
             io.emit("updateConn", ([roomID, peerID]));
         }
-        console.log(users)
-    })
+        //files[roomID].forEach(fname => {
+            //fname.forEach(id => {
+                //files[roomID[fname]] = files[roomID[fname]].filter(i => i !== peerID)
+            //})
+        //})
+    });
+    socket.on('file', ([roomID, peerID, fileName]) => {
+        if(files[roomID[fileName]]){
+            if(files[roomID[fileName]].includes(peerID)){
+                console.log(files[roomID[fileName[peerID]]])
+                // do nothing, we already know peer has file
+            } else {
+                files[roomID[fileName]].push(peerID)
+                io.emit("updateFiles", ([roomID, peerID, fileName]));
+            }
+        } else {
+            console.log("HERE")
+            files[roomID[fileName]] = [peerID]
+            io.emit("updateFiles", ([roomID, peerID, fileName]));
+            }
+        })
 });
 
 app.use(express.static(__dirname));
@@ -50,6 +70,7 @@ app.get('/:roomID', (req, res) => {
 server.listen(port = 3000, () => {
     console.log('Server started at port 3000');
    });
+
 /** 
 server.listen(port = 3000, host = "10.0.1.201", () => {
     console.log('Server started at port 3000');
