@@ -47,16 +47,11 @@ app.get('/:roomID', (req, res) => {
         res.sendStatus(404);
     }
 });
-<<<<<<< HEAD
-
-server.listen(port = 3000, host = "localhost", () => {
-=======
 server.listen(port = 3000, () => {
     console.log('Server started at port 3000');
    });
 /** 
 server.listen(port = 3000, host = "10.0.1.201", () => {
->>>>>>> 9fecdf7e298e91aa9bdaf72450bbf42fbf38eb53
     console.log('Server started at port 3000');
    });
 */
