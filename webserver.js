@@ -36,20 +36,24 @@ io.on('connection', socket => {
         //})
     });
     socket.on('file', ([roomID, peerID, fileName]) => {
-        if(files[roomID[fileName]]){
-            if(files[roomID[fileName]].includes(peerID)){
-                console.log(files[roomID[fileName[peerID]]])
-                // do nothing, we already know peer has file
-            } else {
-                files[roomID[fileName]].push(peerID)
-                io.emit("updateFiles", ([roomID, peerID, fileName]));
+        var bool = true
+        files.forEach( file => {
+            if (file.fName == fileName) {
+                if(file.id == roomID) {
+                    bool = false
+                    if(!file.peers.includes(peerID)) {
+                        file.peers.push(peerID)
+                        io.emit("updateFiles", ([roomID, peerID, fileName]));
+                    }
+                }
             }
-        } else {
-            console.log("HERE")
-            files[roomID[fileName]] = [peerID]
+        });
+        if(bool) {
+            files.push({id: roomID, fName: fileName, peers: [peerID]})
             io.emit("updateFiles", ([roomID, peerID, fileName]));
-            }
-        })
+        }
+        
+    })
 });
 
 app.use(express.static(__dirname));
