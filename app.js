@@ -11,6 +11,7 @@ var socket = null
 var url = window.location.href;
 const roomID = url.substring((url.lastIndexOf('/')+1));
 var remove = true;
+var files = []
 
 //fired from index.html when loaded
 function initialize(){
@@ -27,7 +28,24 @@ function initialize(){
                 return obj.peer !== peerID;
             });
         }
-    })
+        files.forEach(fname => {
+            files[fname].forEach(id => {
+                files[fname] = files[fname].filter(id => id !== peerID);
+            });
+        });
+    });
+
+    socket.on("updateFiles", ([rID, pID, fName]) => {
+        if (rID == roomID){
+            if(files[fName]){
+                files[fName].push(pID)
+                updateFilesTable(true, false)
+            } else {
+                files[fName] = [pID]
+                updateFilesTable(true, true)
+            }
+        }
+    });
     
     peer = new Peer();
     // on open will be launch when you successfully connect to PeerServer
@@ -86,8 +104,6 @@ function handleFile(evt){
 }
 
 function handleReceivingData(data){
-    console.log(remove)
-    console.log(data)
     if (data.toString().includes("done")) {
         console.log("Received data")
         gotFile = true
@@ -109,6 +125,7 @@ function download() {
         const fileStream = streamSaver.createWriteStream(filename);
         stream.pipeTo(fileStream);
         remove = true
+        socket.emit("file", ([roomID, peer["id"], filename]));
     })
 }
 
@@ -138,6 +155,7 @@ function sendFile(){
             console.log("No conection")
         }
     });
+    socket.emit("file", ([roomID, peer["id"], file.name]));
 } 
 
 function updateDownloadButton(state){
@@ -175,4 +193,27 @@ function updateConnTable(peer, add) {
             }
         }
     }
+}
+
+
+// fresh dictates wether we append a append a peerID to a file, or we create a new cell containing a new file.
+function updateFilesTable(add, fresh) {
+    console.log("FFIIIIELS", files)
+    /**
+    let lifeTable = document.getElementById("listOfFiles");
+    if (add){
+        // new peer has file
+        let row = connTable.insertRow(-1);
+        let cell = row.insertCell(-1)
+        let text = document.createTextNode(peer);
+        cell.appendChild(text)
+        var btn = document.createElement('input');
+        btn.type = "button";
+        btn.className = "btn";
+        btn.value = entry.email;
+        btn.onclick = (function(entry) {return function() {chooseUser(entry);}})(entry);
+        td.appendChild(btn);
+    }
+    */
+    
 }
