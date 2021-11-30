@@ -10,6 +10,7 @@ const worker = new Worker("../worker.js");
 var socket = null
 var url = window.location.href;
 const roomID = url.substring((url.lastIndexOf('/')+1));
+var remove = true;
 
 //fired from index.html when loaded
 function initialize(){
@@ -40,7 +41,6 @@ function initialize(){
         console.log("connected to: " + c.peer);
         ready(c);
     })
-    window.onbeforeunload = removePeer(true)
 
     // Check if File API is supported
     if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -86,6 +86,7 @@ function handleFile(evt){
 }
 
 function handleReceivingData(data){
+    console.log(remove)
     console.log(data)
     if (data.toString().includes("done")) {
         console.log("Received data")
@@ -99,15 +100,15 @@ function handleReceivingData(data){
 }
 
 function download() {
-    window.onbeforeunload = removePeer(false) 
-    gotFile = false
+    remove = false;
+    gotFile = false;
     updateDownloadButton(gotFile)
     worker.postMessage("download");
     worker.addEventListener("message", event => {
         const stream = event.data.stream();
         const fileStream = streamSaver.createWriteStream(filename);
         stream.pipeTo(fileStream);
-        window.onbeforeunload = removePeer(true) 
+        remove = true
     })
 }
 
@@ -148,17 +149,10 @@ function updateDownloadButton(state){
 }
 
 // update the eventlistener, such that beforeunload is not fired when we press the download button
-function removePeer(accept){
-    if (accept) {
-        window.addEventListener("beforeunload", () => {
-            socket.emit('close', ([roomID, peer["id"]]))
-        })
-    } else {
-        window.addEventListener("beforeunload", () => {
-            null
-        })
+function removePeer(){
+    if (remove) {
+        socket.emit('close', ([roomID, peer["id"]]))
     }
-
 }
 
 function updateConnTable(peer, add) {
