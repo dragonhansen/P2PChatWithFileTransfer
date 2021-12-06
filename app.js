@@ -138,30 +138,29 @@ function handleFile(evt){
     file = evt.target.files[0];
 }
 
-function handleReceivingData(data){
+async function handleReceivingData(data){
     console.log("outer")
     if (data.wantNewFile){
         console.log("outer2")
         console.log(data.file)
         temp[data.part] = data.file
+        await new Promise(r => setTimeout(r, 1000));
         console.log("temp", temp)
         if(temp.length-1 == data.totalLength){
             buffer = []
             for(let i = 1; i<=data.totalLength; i++){
-                //buffer.push(temp[i])
-                temp[i].forEach(byte => {
-                    buffer.push(byte);
-                });
+                buffer.push(temp[i])
             }
 
             console.log("HERE", buffer, temp)
             filename = data.name;
-            const file = new Blob([buffer]);
+            const file = new Blob(buffer);
             console.log("file", file)
             const stream = file.stream();
             const fileStream = streamSaver.createWriteStream(filename);
             stream.pipeTo(fileStream);
             temp = []
+            localFiles[filename] = file
             socket.emit("file", ([roomID, peer["id"], filename]));
         }
         
