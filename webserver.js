@@ -17,7 +17,14 @@ io.on('connection', socket => {
             users[roomID] = [peerID];
         }
         const usersInThisRoom = users[roomID].filter(id => id !== peerID);
-        socket.emit("all users", usersInThisRoom);
+        var filesInThisRoom = []
+        files.forEach(file => {
+            if (file.id == roomID) {
+                filesInThisRoom.push({filename: file.fName, peers: file.peers})
+            }
+        })
+        console.log(filesInThisRoom)
+        socket.emit("all users", ([usersInThisRoom, filesInThisRoom]));
     });
     socket.on('close', ([roomID,peerID]) => {
         if(users[roomID]){
@@ -29,27 +36,26 @@ io.on('connection', socket => {
             }
             io.emit("updateConn", ([roomID, peerID]));
         }
-        //files[roomID].forEach(fname => {
-            //fname.forEach(id => {
-                //files[roomID[fname]] = files[roomID[fname]].filter(i => i !== peerID)
-            //})
-        //})
     });
     socket.on('file', ([roomID, peerID, fileName]) => {
-        if(files[roomID[fileName]]){
-            if(files[roomID[fileName]].includes(peerID)){
-                console.log(files[roomID[fileName[peerID]]])
-                // do nothing, we already know peer has file
-            } else {
-                files[roomID[fileName]].push(peerID)
-                io.emit("updateFiles", ([roomID, peerID, fileName]));
+        var bool = true
+        files.forEach( file => {
+            if (file.fName == fileName) {
+                if(file.id == roomID) {
+                    bool = false
+                    if(!file.peers.includes(peerID)) {
+                        file.peers.push(peerID)
+                        io.emit("updateFiles", ([roomID, peerID, fileName]));
+                    }
+                }
             }
-        } else {
-            console.log("HERE")
-            files[roomID[fileName]] = [peerID]
+        });
+        if(bool) {
+            files.push({id: roomID, fName: fileName, peers: [peerID]})
             io.emit("updateFiles", ([roomID, peerID, fileName]));
-            }
-        })
+        }
+        
+    })
 });
 
 app.use(express.static(__dirname));
