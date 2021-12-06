@@ -12,13 +12,19 @@ var url = window.location.href;
 const roomID = url.substring((url.lastIndexOf('/')+1));
 var remove = true;
 var files = []
+var localFiles = [];
+var temp = [];
 
 //fired from index.html when loaded
 function initialize(){
     socket = io.connect("/");
     
-    socket.on("all users", users => {
+    socket.on("all users", ([users, f]) => {
         connect(users);
+        f.forEach(file => {
+            files[file.filename] = file.peers
+            updateFilesTable(true, file.filename)
+        })
     });
 
     socket.on("updateConn", ([rID, peerID]) => {
@@ -75,7 +81,42 @@ function ready(c){
     updateConnTable(c.peer, true)
     c.on('open', function() {
         // Receive messages
-        c.on('data', handleReceivingData);
+        c.on('data', data => {
+            if (data.toString().startsWith("gibFilePls/")){
+                split1 = data.toString().indexOf("//") 
+                split2 = data.toString().indexOf("///")
+                ourPeerNumber = data.toString().substring(11, split1)
+                totalPeers = data.toString().substring(split1+2, split2)
+                fName = data.toString().substring(split2+3)
+                localFiles[fName].arrayBuffer().then(buffer => {
+                    const totalBytes = buffer.byteLength;
+                    const sendbytes = Math.floor(totalBytes/totalPeers)
+                    bytesproccesed = 0
+                    for (let i = 1; i <= totalPeers; i++){
+                        if (i == ourPeerNumber){
+                            if (i == totalPeers){
+                                partToSend = buffer.slice(bytesproccesed);
+                            } else {
+                                partToSend = buffer.slice(bytesproccesed, bytesproccesed+sendbytes);
+                            }
+                        } else {
+                            bytesproccesed += sendbytes
+                        }
+                    }
+                    send = new Blob([partToSend]);
+
+                    c.send({
+                    wantNewFile: true, 
+                    part: ourPeerNumber, 
+                    totalLength: totalPeers,
+                    name: fName, 
+                    file: send})
+                })
+
+            } else {
+                handleReceivingData(data)
+            }
+        });
     });
 }
 
@@ -98,6 +139,33 @@ function handleFile(evt){
 }
 
 function handleReceivingData(data){
+    console.log("outer")
+    if (data.wantNewFile){
+        console.log("outer2")
+        console.log(data.file)
+        temp[data.part] = data.file
+        console.log("temp", temp)
+        if(temp.length-1 == data.totalLength){
+            buffer = []
+            for(let i = 1; i<=data.totalLength; i++){
+                //buffer.push(temp[i])
+                temp[i].forEach(byte => {
+                    buffer.push(byte);
+                });
+            }
+
+            console.log("HERE", buffer, temp)
+            filename = data.name;
+            const file = new Blob([buffer]);
+            console.log("file", file)
+            const stream = file.stream();
+            const fileStream = streamSaver.createWriteStream(filename);
+            stream.pipeTo(fileStream);
+            temp = []
+            socket.emit("file", ([roomID, peer["id"], filename]));
+        }
+        
+    }
     if (data.toString().includes("done")) {
         console.log("Received data")
         gotFile = true
@@ -115,6 +183,11 @@ function download() {
     updateDownloadButton(gotFile)
     worker.postMessage("download");
     worker.addEventListener("message", event => {
+        if (!localFiles[filename]){
+            localFiles[filename] = event.data
+            console.log("local", localFiles[filename], event.data)
+        }
+        console.log("HOW TF", event.data)
         const stream = event.data.stream();
         const fileStream = streamSaver.createWriteStream(filename);
         stream.pipeTo(fileStream);
@@ -129,18 +202,27 @@ function sendFile(){
         if (c && c.open) {
             const stream = file.stream();
             const reader = stream.getReader();
-    
+            let array = [];
+            console.log("STREAM")
+
             reader.read().then(obj => {
                 handlereading(obj.done, obj.value);
             });
-    
+            
             function handlereading(done, value) {
                 if (done) {
                     c.send(JSON.stringify({ done: true, fileName: file.name }));
+                    if (!localFiles[file.name]){
+                        const blob = new Blob(array);
+                        localFiles[file.name] = blob
+                    }
                     return;
                 }
     
                 c.send(value);
+                if (!localFiles[file.name]){
+                    array.push(value)
+                }
                 reader.read().then(obj => {
                     handlereading(obj.done, obj.value);
                 })
@@ -191,8 +273,7 @@ function updateConnTable(peer, add) {
 
 
 // fresh dictates wether we append a append a peerID to a file, or we create a new cell containing a new file.
-function updateFilesTable(add, peer, fName) {
-    
+function updateFilesTable(add, fName) {
     let fileTable = document.getElementById("listOfFiles");
     if (add){
         // new file has been sent
@@ -222,5 +303,12 @@ function updateFilesTable(add, peer, fName) {
 }
 
 function downloadFile(fName) {
-    console.log("HELLO FELLOW")
+    let peers = files[fName]
+    count = 1
+    conns.forEach(conn => {
+        if (peers.includes(conn.peer)){
+            conn.send("gibFilePls/"+count+"//"+peers.length+"///"+fName)
+            count++
+        }
+    })
 }
