@@ -306,14 +306,9 @@ function downloadFile(fName) {
     var length = 0
     if (localFiles[fName]){
         length = peers.length -1
-    } else {if(check == fName){
-        connTable.rows[i].remove();
-        // found the peer that has disconnected
-        break
-    }
+    } else 
         length = peers.length
     }
-    console.log(length)
     count = 1
     conns.forEach(conn => {
         if (peers.includes(conn.peer)){
