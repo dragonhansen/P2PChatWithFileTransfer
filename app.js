@@ -103,14 +103,13 @@ function ready(c){
                             bytesproccesed += sendbytes
                         }
                     }
-                    send = new Blob([partToSend]);
 
                     c.send({
                     wantNewFile: true, 
                     part: ourPeerNumber, 
                     totalLength: totalPeers,
                     name: fName, 
-                    file: send})
+                    file: partToSend})
                 })
 
             } else {
@@ -138,17 +137,14 @@ function handleFile(evt){
     file = evt.target.files[0];
 }
 
-async function handleReceivingData(data){
-    console.log("outer")
+function handleReceivingData(data){
     if (data.wantNewFile){
-        console.log("outer2")
         console.log(data.file)
-        temp[data.part] = data.file
-        await new Promise(r => setTimeout(r, 1000));
+        temp[data.part-1] = data.file
         console.log("temp", temp)
-        if(temp.length-1 == data.totalLength){
+        if(temp.length == data.totalLength && !temp.includes(undefined)){
             buffer = []
-            for(let i = 1; i<=data.totalLength; i++){
+            for(let i = 0; i<data.totalLength; i++){
                 buffer.push(temp[i])
             }
 
@@ -163,7 +159,6 @@ async function handleReceivingData(data){
             localFiles[filename] = file
             socket.emit("file", ([roomID, peer["id"], filename]));
         }
-        
     }
     if (data.toString().includes("done")) {
         console.log("Received data")
@@ -303,10 +298,17 @@ function updateFilesTable(add, fName) {
 
 function downloadFile(fName) {
     let peers = files[fName]
+    var length = 0
+    if (localFiles[fName]){
+        length = peers.length -1
+    } else {
+        length = peers.length
+    }
+    console.log(length)
     count = 1
     conns.forEach(conn => {
         if (peers.includes(conn.peer)){
-            conn.send("gibFilePls/"+count+"//"+peers.length+"///"+fName)
+            conn.send("gibFilePls/"+count+"//"+length+"///"+fName)
             count++
         }
     })
