@@ -33,12 +33,17 @@ function initialize(){
             conns = conns.filter(function( obj ) {
                 return obj.peer !== peerID;
             });
+            
+            for (const [key, value] of Object.entries(files)) {
+                files[key] = files[key].filter(id => id !== peerID)
+                console.log(files[key].length, files[key])
+                if (files[key].length == 0){
+                    console.log("CALLED")
+                    updateFilesTable(false, key)
+                }
+              }
+            console.log("files2", files)
         }
-        files.forEach(fname => {
-            files[fname].forEach(id => {
-                files[fname] = files[fname].filter(id => id !== peerID);
-            });
-        });
     });
 
     socket.on("updateFiles", ([rID, pID, fName]) => {
@@ -285,10 +290,10 @@ function updateFilesTable(add, fName) {
         cell2.appendChild(btn);
     } else {
         // peer has disconnected and we therefore remove the file if no other peer has it
-        for(var i=1; i <= files.length; i++){
+        for (let i in fileTable.rows) {
             check = fileTable.rows[i].cells[0].innerHTML
             if(check == fName){
-                connTable.rows[i].remove();
+                fileTable.rows[i].remove();
                 // found the peer that has disconnected
                 break
             }
@@ -301,7 +306,11 @@ function downloadFile(fName) {
     var length = 0
     if (localFiles[fName]){
         length = peers.length -1
-    } else {
+    } else {if(check == fName){
+        connTable.rows[i].remove();
+        // found the peer that has disconnected
+        break
+    }
         length = peers.length
     }
     console.log(length)

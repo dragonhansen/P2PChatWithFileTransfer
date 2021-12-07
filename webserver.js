@@ -23,10 +23,9 @@ io.on('connection', socket => {
                 filesInThisRoom.push({filename: file.fName, peers: file.peers})
             }
         })
-        console.log(filesInThisRoom)
         socket.emit("all users", ([usersInThisRoom, filesInThisRoom]));
     });
-    socket.on('close', ([roomID,peerID]) => {
+    socket.on('close', ([roomID, peerID]) => {
         if(users[roomID]){
             users[roomID] = users[roomID].filter(id => id !== peerID);
             if(users[roomID].length == 0){
@@ -34,6 +33,13 @@ io.on('connection', socket => {
                 rooms = rooms.filter(id => id !== roomID);
                 users = users.filter(id => id !== roomID);
             }
+            files.forEach(file => {
+                if (file.id == roomID ){
+                    if (file.peers.includes(peerID)){
+                        file.peers = file.peers.filter(id => id != peerID)
+                    }
+                }
+            })
             io.emit("updateConn", ([roomID, peerID]));
         }
     });
