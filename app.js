@@ -302,6 +302,7 @@ function updateFilesTable(add, fName) {
 }
 
 function downloadFile(fName) {
+    console.log("TORRENT_START", Date.now())
     let peers = files[fName]
     console.log("PEERS", peers)
     var length = 0
