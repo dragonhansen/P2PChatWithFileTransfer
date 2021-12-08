@@ -21,6 +21,7 @@ io.on('connection', socket => {
         files.forEach(file => {
             if (file.id == roomID) {
                 filesInThisRoom.push({filename: file.fName, peers: file.peers})
+                console.log(file)
             }
         })
         socket.emit("all users", ([usersInThisRoom, filesInThisRoom]));
@@ -31,15 +32,24 @@ io.on('connection', socket => {
             if(users[roomID].length == 0){
                 // no more peers in the room, so we remove the roomID from valid URLs
                 rooms = rooms.filter(id => id !== roomID);
-                users = users.filter(id => id !== roomID);
+                delete users[roomID]
             }
+            var filesToBeRemoved = []
             files.forEach(file => {
                 if (file.id == roomID ){
                     if (file.peers.includes(peerID)){
-                        file.peers = file.peers.filter(id => id != peerID)
+                        file.peers = file.peers.filter(id => id !== peerID)
+                        if (file.peers.length == 0){
+                            filesToBeRemoved.push(file)
+                        }
                     }
                 }
             })
+            if (filesToBeRemoved.length !== 0){
+                for (let i = 0; i < filesToBeRemoved.length; i++){
+                    files.splice(files.findIndex(a => a.fName === filesToBeRemoved[i].fName) , 1)
+                }
+            }
             io.emit("updateConn", ([roomID, peerID]));
         }
     });

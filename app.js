@@ -38,11 +38,10 @@ function initialize(){
                 files[key] = files[key].filter(id => id !== peerID)
                 console.log(files[key].length, files[key])
                 if (files[key].length == 0){
-                    console.log("CALLED")
+                    delete files[key]
                     updateFilesTable(false, key)
                 }
               }
-            console.log("files2", files)
         }
     });
 
@@ -129,12 +128,15 @@ function sendMsg(){
     const msg = sendMessageBox.value;
     conns.forEach(c => {
         if (c && c.open) {
-            c.send(msg);
-            console.log("Sent: " + msg)
+            c.send({
+                isMessage: true,
+                message: msg,
+                sendingPeer: peer["id"]});
         } else{
             console.log("No conection")
         }
     })
+    insertMessage(peer["id"], msg)
     sendMessageBox.value = "";
 }
 
@@ -143,17 +145,18 @@ function handleFile(evt){
 }
 
 function handleReceivingData(data){
+    if (data.isMessage){
+        insertMessage(data.sendingPeer, data.message)
+    }
     if (data.wantNewFile){
         console.log(data.file)
         temp[data.part-1] = data.file
-        console.log("temp", temp)
         if(temp.length == data.totalLength && !temp.includes(undefined)){
             buffer = []
             for(let i = 0; i<data.totalLength; i++){
                 buffer.push(temp[i])
             }
 
-            console.log("HERE", buffer, temp)
             filename = data.name;
             const file = new Blob(buffer);
             console.log("file", file)
@@ -184,9 +187,7 @@ function download() {
     worker.addEventListener("message", event => {
         if (!localFiles[filename]){
             localFiles[filename] = event.data
-            console.log("local", localFiles[filename], event.data)
         }
-        console.log("HOW TF", event.data)
         const stream = event.data.stream();
         const fileStream = streamSaver.createWriteStream(filename);
         stream.pipeTo(fileStream);
@@ -197,12 +198,11 @@ function download() {
 
 // For sending file
 function sendFile(){
+    const stream = file.stream();
+    const reader = stream.getReader();
     conns.forEach(c => {
         if (c && c.open) {
-            const stream = file.stream();
-            const reader = stream.getReader();
             let array = [];
-            console.log("STREAM")
 
             reader.read().then(obj => {
                 handlereading(obj.done, obj.value);
@@ -303,10 +303,11 @@ function updateFilesTable(add, fName) {
 
 function downloadFile(fName) {
     let peers = files[fName]
+    console.log("PEERS", peers)
     var length = 0
     if (localFiles[fName]){
         length = peers.length -1
-    } else 
+    } else {
         length = peers.length
     }
     count = 1
@@ -316,4 +317,19 @@ function downloadFile(fName) {
             count++
         }
     })
+}
+
+function insertMessage(id, msg) {
+    let messageTable = document.getElementById("listOfMessages")
+        if(messageTable.rows.length == 20) {
+            for (let i = 1; i < 19; i++) {
+                messageTable.rows[i].cells[0].innerHTML = messageTable.rows[i+1].cells[0].innerHTML
+            }
+            messageTable.rows[19].cells[0].innerHTML = ""+id+": " + msg
+        } else {
+            const row = messageTable.insertRow(-1);
+            const cell = row.insertCell(-1);
+            
+            cell.innerHTML = (""+id+": " + msg);
+        }
 }
