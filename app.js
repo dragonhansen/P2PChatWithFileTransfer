@@ -159,6 +159,7 @@ function handleReceivingData(data){
 
             filename = data.name;
             const file = new Blob(buffer);
+            console.log("TORRENT_DONE", Date.now())
             console.log("file", file)
             const stream = file.stream();
             const fileStream = streamSaver.createWriteStream(filename);
@@ -174,6 +175,7 @@ function handleReceivingData(data){
         updateDownloadButton(gotFile)
         const parsed = JSON.parse(data);
         filename = parsed.fileName;
+        console.log("DONE", Date.now())
     } else {
         worker.postMessage(data);
     }
@@ -198,6 +200,7 @@ function download() {
 
 // For sending file
 function sendFile(){
+    console.log("START", Date.now())
     const stream = file.stream();
     const reader = stream.getReader();
     conns.forEach(c => {
