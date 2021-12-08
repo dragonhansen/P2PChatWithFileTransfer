@@ -96,16 +96,13 @@ function ready(c){
                     const totalBytes = buffer.byteLength;
                     const sendbytes = Math.floor(totalBytes/totalPeers)
                     bytesproccesed = 0
-                    for (let i = 1; i <= totalPeers; i++){
-                        if (i == ourPeerNumber){
-                            if (i == totalPeers){
-                                partToSend = buffer.slice(bytesproccesed);
-                            } else {
-                                partToSend = buffer.slice(bytesproccesed, bytesproccesed+sendbytes);
-                            }
-                        } else {
-                            bytesproccesed += sendbytes
-                        }
+
+                    if (ourPeerNumber == totalPeers){
+                        partToSend = buffer.slice(sendbytes*(ourPeerNumber-1));
+                    } else if (ourPeerNumber == 1) {
+                        partToSend = buffer.slice(0, ourPeerNumber*sendbytes);
+                    } else{
+                        partToSend = buffer.slice((ourPeerNumber-1)*sendbytes, ourPeerNumber*sendbytes);
                     }
 
                     c.send({
