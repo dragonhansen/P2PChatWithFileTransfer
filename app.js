@@ -10,7 +10,6 @@ const worker = new Worker("../worker.js");
 var socket = null
 var url = window.location.href;
 const roomID = url.substring((url.lastIndexOf('/')+1));
-var remove = true;
 var files = []
 var localFiles = [];
 var temp = [];
@@ -27,24 +26,6 @@ function initialize(){
         })
     });
 
-    socket.on("updateConn", ([rID, peerID]) => {
-        if(rID == roomID){
-            updateConnTable(peerID, false)
-            conns = conns.filter(function( obj ) {
-                return obj.peer !== peerID;
-            });
-            
-            for (const [key, value] of Object.entries(files)) {
-                files[key] = files[key].filter(id => id !== peerID)
-                console.log(files[key].length, files[key])
-                if (files[key].length == 0){
-                    delete files[key]
-                    updateFilesTable(false, key)
-                }
-              }
-        }
-    });
-
     socket.on("updateFiles", ([rID, pID, fName]) => {
         if (rID == roomID){
             if(files[fName]){
@@ -53,6 +34,28 @@ function initialize(){
                 files[fName] = [pID]
                 // we only add a new cell in our table when a new file has been sent
                 updateFilesTable(true, fName)
+            }
+        }
+    });
+
+    socket.on("updateConn", ([rID, peerID]) => {
+        if (rID == roomID){
+            var bool = conns.some(function(obj){
+                return peerID === obj.peer;
+            });
+            
+            if (bool){
+                updateConnTable(peerID, false)
+                conns = conns.filter(function( obj ) {
+                    return obj.peer !== peerID;
+                });
+                for (const [key, value] of Object.entries(files)) {
+                    files[key] = files[key].filter(id => id !== peerID)
+                    if (files[key].length == 0){
+                        delete files[key]
+                        updateFilesTable(false, key)
+                    }
+                }
             }
         }
     });
@@ -74,14 +77,31 @@ function initialize(){
 
 function connect(IDs){
     IDs.forEach(id => {
-        console.log("connected to peer with ID: "+ id)
         c = peer.connect(id)
+        console.log("connected to peer with ID: "+ id)
         conns.push(c)
         ready(c)
     });
 }
 
 function ready(c){
+    c.peerConnection.onconnectionstatechange = function(event) {
+        if(c.peerConnection.connectionState == "disconnected"){
+            socket.emit('close', ([roomID, c.peer]))
+            updateConnTable(c.peer, false)
+            conns = conns.filter(function( obj ) {
+                return obj.peer !== c.peer;
+            });
+            for (const [key, value] of Object.entries(files)) {
+                files[key] = files[key].filter(id => id !== c.peer)
+                if (files[key].length == 0){
+                    delete files[key]
+                    updateFilesTable(false, key)
+                }
+            }
+        }
+    }
+
     updateConnTable(c.peer, true)
     c.on('open', function() {
         // Receive messages
@@ -95,12 +115,11 @@ function ready(c){
                 localFiles[fName].arrayBuffer().then(buffer => {
                     const totalBytes = buffer.byteLength;
                     const sendbytes = Math.floor(totalBytes/totalPeers)
-                    bytesproccesed = 0
 
-                    if (ourPeerNumber == totalPeers){
-                        partToSend = buffer.slice(sendbytes*(ourPeerNumber-1));
-                    } else if (ourPeerNumber == 1) {
+                    if (ourPeerNumber == 1) {
                         partToSend = buffer.slice(0, ourPeerNumber*sendbytes);
+                    } else if (ourPeerNumber == totalPeers){
+                        partToSend = buffer.slice(sendbytes*(ourPeerNumber-1));
                     } else{
                         partToSend = buffer.slice((ourPeerNumber-1)*sendbytes, ourPeerNumber*sendbytes);
                     }
@@ -179,7 +198,6 @@ function handleReceivingData(data){
 }
 
 function download() {
-    remove = false;
     gotFile = false;
     updateDownloadButton(gotFile)
     worker.postMessage("download");
@@ -190,7 +208,6 @@ function download() {
         const stream = event.data.stream();
         const fileStream = streamSaver.createWriteStream(filename);
         stream.pipeTo(fileStream);
-        remove = true
         socket.emit("file", ([roomID, peer["id"], filename]));
     })
 }
@@ -198,10 +215,10 @@ function download() {
 // For sending file
 function sendFile(){
     console.log("START", Date.now())
-    const stream = file.stream();
-    const reader = stream.getReader();
     conns.forEach(c => {
         if (c && c.open) {
+            const stream = file.stream();
+            const reader = stream.getReader();
             let array = [];
 
             reader.read().then(obj => {
@@ -241,14 +258,9 @@ function updateDownloadButton(state){
     }
 }
 
-// update the eventlistener, such that beforeunload is not fired when we press the download button
-function removePeer(){
-    if (remove) {
-        socket.emit('close', ([roomID, peer["id"]]))
-    }
-}
 
 function updateConnTable(peer, add) {
+    console.log("TABEL", add, peer)
     let connTable = document.getElementById("listOfConn");
     if (add){
         // add peer to table
@@ -334,3 +346,4 @@ function insertMessage(id, msg) {
             cell.innerHTML = (""+id+": " + msg);
         }
 }
+    

@@ -21,36 +21,37 @@ io.on('connection', socket => {
         files.forEach(file => {
             if (file.id == roomID) {
                 filesInThisRoom.push({filename: file.fName, peers: file.peers})
-                console.log(file)
             }
         })
         socket.emit("all users", ([usersInThisRoom, filesInThisRoom]));
     });
     socket.on('close', ([roomID, peerID]) => {
         if(users[roomID]){
-            users[roomID] = users[roomID].filter(id => id !== peerID);
-            if(users[roomID].length == 0){
-                // no more peers in the room, so we remove the roomID from valid URLs
-                rooms = rooms.filter(id => id !== roomID);
-                delete users[roomID]
-            }
-            var filesToBeRemoved = []
-            files.forEach(file => {
-                if (file.id == roomID ){
-                    if (file.peers.includes(peerID)){
-                        file.peers = file.peers.filter(id => id !== peerID)
-                        if (file.peers.length == 0){
-                            filesToBeRemoved.push(file)
+            if(users[roomID].includes(peerID)){
+                users[roomID] = users[roomID].filter(id => id !== peerID);
+                if(users[roomID].length == 0){
+                    // no more peers in the room, so we remove the roomID from valid URLs
+                    rooms = rooms.filter(id => id !== roomID);
+                    delete users[roomID]
+                }
+                var filesToBeRemoved = []
+                files.forEach(file => {
+                    if (file.id == roomID ){
+                        if (file.peers.includes(peerID)){
+                            file.peers = file.peers.filter(id => id !== peerID)
+                            if (file.peers.length == 0){
+                                filesToBeRemoved.push(file)
+                            }
                         }
                     }
+                })
+                if (filesToBeRemoved.length !== 0){
+                    for (let i = 0; i < filesToBeRemoved.length; i++){
+                        files.splice(files.findIndex(a => a.fName === filesToBeRemoved[i].fName) , 1)
+                    }
                 }
-            })
-            if (filesToBeRemoved.length !== 0){
-                for (let i = 0; i < filesToBeRemoved.length; i++){
-                    files.splice(files.findIndex(a => a.fName === filesToBeRemoved[i].fName) , 1)
-                }
-            }
-            io.emit("updateConn", ([roomID, peerID]));
+                io.emit("updateConn", ([roomID, peerID]));
+            }    
         }
     });
     socket.on('file', ([roomID, peerID, fileName]) => {
@@ -89,12 +90,13 @@ app.get('/:roomID', (req, res) => {
         res.sendStatus(404);
     }
 });
+/**
+ * 
+ 
 server.listen(port = 3000, () => {
     console.log('Server started at port 3000');
    });
-
-/** 
+*/
 server.listen(port = 3000, host = "10.0.1.201", () => {
     console.log('Server started at port 3000');
    });
-*/
