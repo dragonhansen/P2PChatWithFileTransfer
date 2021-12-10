@@ -165,7 +165,6 @@ function handleReceivingData(data){
         insertMessage(data.sendingPeer, data.message)
     }
     if (data.wantNewFile){
-        console.log(data.file)
         temp[data.part-1] = data.file
         if(temp.length == data.totalLength && !temp.includes(undefined)){
             buffer = []
@@ -175,8 +174,6 @@ function handleReceivingData(data){
 
             filename = data.name;
             const file = new Blob(buffer);
-            console.log("TORRENT_DONE", Date.now())
-            console.log("file", file)
             const stream = file.stream();
             const fileStream = streamSaver.createWriteStream(filename);
             stream.pipeTo(fileStream);
@@ -191,7 +188,6 @@ function handleReceivingData(data){
         updateDownloadButton(gotFile)
         const parsed = JSON.parse(data);
         filename = parsed.fileName;
-        console.log("DONE", Date.now())
     } else {
         worker.postMessage(data);
     }
@@ -214,7 +210,6 @@ function download() {
 
 // For sending file
 function sendFile(){
-    console.log("START", Date.now())
     conns.forEach(c => {
         if (c && c.open) {
             const stream = file.stream();
@@ -260,7 +255,6 @@ function updateDownloadButton(state){
 
 
 function updateConnTable(peer, add) {
-    console.log("TABEL", add, peer)
     let connTable = document.getElementById("listOfConn");
     if (add){
         // add peer to table
@@ -314,9 +308,7 @@ function updateFilesTable(add, fName) {
 }
 
 function downloadFile(fName) {
-    console.log("TORRENT_START", Date.now())
     let peers = files[fName]
-    console.log("PEERS", peers)
     var length = 0
     if (localFiles[fName]){
         length = peers.length -1
