@@ -311,17 +311,21 @@ function downloadFile(fName) {
     let peers = files[fName]
     var length = 0
     if (localFiles[fName]){
-        length = peers.length -1
+        const file = localFiles[fName];
+        const stream = file.stream();
+        const fileStream = streamSaver.createWriteStream(fName);
+        stream.pipeTo(fileStream);
     } else {
         length = peers.length
+        count = 1
+        conns.forEach(conn => {
+            if (peers.includes(conn.peer)){
+                conn.send("gibFilePls/"+count+"//"+length+"///"+fName)
+                count++
+            }
+        })
     }
-    count = 1
-    conns.forEach(conn => {
-        if (peers.includes(conn.peer)){
-            conn.send("gibFilePls/"+count+"//"+length+"///"+fName)
-            count++
-        }
-    })
+    
 }
 
 function insertMessage(id, msg) {
